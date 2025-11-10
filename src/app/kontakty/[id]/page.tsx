@@ -5,10 +5,10 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import AddTaskForm from '@/components/AddTaskForm'
-import { Contact, Task, User, Prisma } from '@prisma/client' // Importujemy Prisma
-import DisplayField from '@/components/DisplayField' // Nasz nowy komponent
-import DisplayZobowiazania from '@/components/DisplayZobowiazania' // Nasz nowy komponent
-import DeleteTaskButton from '@/components/DeleteTaskButton'; // <-- NOWY IMPORT
+import { Contact, Task, User, Prisma } from '@prisma/client'
+import DisplayField from '@/components/DisplayField'
+import DisplayZobowiazania from '@/components/DisplayZobowiazania'
+import DeleteTaskButton from '@/components/DeleteTaskButton';
 
 // Rozszerzony typ dla zadania (z danymi usera)
 type TaskWithUser = Task & {
@@ -31,14 +31,9 @@ function formatTermin(date: Date) {
     }).format(new Date(date));
 }
 
-// Style dla sekcji
-const sectionStyle = {
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    padding: '16px',
-    background: '#fff',
-    marginBottom: '20px'
-};
+// === NOWE STYLE TAILWIND DLA SEKCJI ===
+// To jest styl, który dodaje spacje (margin-bottom: mb-6)
+const sectionStyle = "bg-white border border-zinc-200 rounded-lg p-5 shadow-sm mb-6";
 
 export default function ContactDetailsPage() {
     const params = useParams()
@@ -80,32 +75,36 @@ export default function ContactDetailsPage() {
     }, [contactId])
 
     if (loading) {
-        return <p style={{ textAlign: 'center', padding: '50px' }}>Ładowanie danych...</p>
+        return <p className="text-center p-20">Ładowanie danych...</p>
     }
 
     if (error) {
-        return <p style={{ textAlign: 'center', padding: '50px', color: 'red' }}>Błąd: {error}</p>
+        return <p className="text-center p-20 text-red-600">Błąd: {error}</p>
     }
 
     if (!contact) {
-        return <p>Nie znaleziono kontaktu.</p>
+        return <p className="text-center p-20">Nie znaleziono kontaktu.</p>
     }
 
     return (
-        <div style={{ maxWidth: '1000px', margin: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
+        // === GŁÓWNY LAYOUT (GRID) ===
+        <div className="max-w-7xl mx-auto p-5 grid grid-cols-1 md:grid-cols-3 gap-8">
 
-            {/* Kolumna lewa: Szczegóły i Zadania */}
-            <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h1>{contact.imie}</h1>
-                    <Link href={`/kontakty/edycja/${contact.id}`} style={{ padding: '8px 12px', background: 'orange', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>
+            {/* === KOLUMNA LEWA (Szczegóły i Zadania) === */}
+            <div className="md:col-span-2">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold text-zinc-800">{contact.imie}</h1>
+                    <Link
+                        href={`/kontakty/edycja/${contact.id}`}
+                        className="py-2 px-4 bg-orange-500 text-white font-medium rounded-md hover:bg-orange-600 transition-colors shadow-sm"
+                    >
                         Edytuj Kontakt
                     </Link>
                 </div>
 
-                {/* --- NOWA SEKCJA: Wszystkie Dane Kontaktu --- */}
-                <div style={sectionStyle}>
-                    <h2>Dane Podstawowe</h2>
+                {/* --- SEKCJA: Dane Podstawowe --- */}
+                <div className={sectionStyle}>
+                    <h2 className="text-xl font-semibold text-zinc-700 mb-3">Dane Podstawowe</h2>
                     <DisplayField label="Etap" value={contact.etap} />
                     <DisplayField label="Email" value={contact.email} />
                     <DisplayField label="Telefon" value={contact.telefon} />
@@ -114,8 +113,9 @@ export default function ContactDetailsPage() {
                     <DisplayField label="Opis" value={contact.opis} />
                 </div>
 
-                <div style={sectionStyle}>
-                    <h2>Dane Firmy</h2>
+                {/* --- SEKCJA: Dane Firmy --- */}
+                <div className={sectionStyle}>
+                    <h2 className="text-xl font-semibold text-zinc-700 mb-3">Dane Firmy</h2>
                     <DisplayField label="Nazwa firmy" value={contact.nazwaFirmy} />
                     <DisplayField label="Rodzaj działki" value={contact.rodzajDzialki} />
                     <DisplayField label="Forma opodatkowania" value={contact.formaOpodatkowania} />
@@ -124,93 +124,61 @@ export default function ContactDetailsPage() {
                     <DisplayField label="Plan na rozwój" value={contact.planNaRozwoj} />
                     <DisplayField label="Zatrudnia pracowników" value={contact.czyZatrudniaPracownikow} />
                     <DisplayField label="Opóźnienia w płatnościach" value={contact.opoznieniaWPlatnosciach} />
-                    {/* Specjalny komponent dla JSON */}
                     <DisplayZobowiazania data={contact.zobowiazania} />
                 </div>
 
-                <div style={sectionStyle}>
-                    <h2>Dane Prywatne</h2>
+                {/* --- SEKCJA: Dane Prywatne --- */}
+                <div className={sectionStyle}>
+                    <h2 className="text-xl font-semibold text-zinc-700 mb-3">Dane Prywatne</h2>
                     <DisplayField label="Stan cywilny" value={contact.stanCywilny} />
                     <DisplayField label="Majątek prywatny" value={contact.majatekPrywatny} />
                     <DisplayField label="Rozdzielność majątkowa" value={contact.rozdzielnoscMajatkowa} />
                     <DisplayField label="Kredyt w ciągu 10 lat" value={contact.czyBralKredyt10Lat} />
                 </div>
-                {/* --- KONIEC NOWEJ SEKCJI --- */}
 
+                <hr className="my-6" />
 
-                <hr style={{ margin: '20px 0' }} />
+                {/* --- SEKCJA: Zadania (POPRAWIONA) --- */}
+                <div>
+                    <h2 className="text-2xl font-semibold text-zinc-800 mb-4">
+                        Zadania ({tasks.length})
+                    </h2>
+                    <div className="flex flex-col gap-3">
+                        {tasks.length === 0 && (
+                            <p className="text-zinc-500">Brak zadań dla tego kontaktu.</p>
+                        )}
+                        {tasks.map(task => (
+                            <div key={task.id} className="bg-white border border-zinc-200 p-4 rounded-lg shadow-sm">
+                                {/* Górna część: Nazwa i Termin */}
+                                <div className="flex justify-between items-center mb-2">
+                                    <strong className="text-lg font-semibold text-zinc-800">{task.nazwa}</strong>
+                                    <span className="font-bold text-sm text-zinc-700">
+                                        {formatTermin(task.termin)}
+                                    </span>
+                                </div>
 
-                <h2>Zadania ({tasks.length})</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {tasks.map(task => (
-                        <div key={task.id} style={{ border: '1px solid #ddd', padding: '10px', borderRadius: '5px', background: '#fff' }}>
-                            <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                                <h2>Zadania ({tasks.length})</h2>
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                                    {tasks.map(task => (
-                                        <div key={task.id} style={{
-                                            border: '1px solid #ddd',
-                                            padding: '10px',
-                                            borderRadius: '5px',
-                                            background: '#fff'
-                                        }}>
-                                            {/* Górna część: Nazwa i Termin */}
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                marginBottom: '5px'
-                                            }}>
-                                                <strong style={{fontSize: '1.1rem'}}>{task.nazwa}</strong>
-                                                <span style={{fontWeight: 'bold'}}>
-                  {formatTermin(task.termin)}
-                </span>
-                                            </div>
-                                            {/* Opis */}
-                                            <p style={{margin: '5px 0'}}>{task.opis}</p>
-                                            {/* Dolna część: Przypisany User i Przycisk Usuń */}
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                marginTop: '5px'
-                                                                            }}>
-                                                <span style={{
-                                                    padding: '3px 8px',
-                                                    borderRadius: '10px',
-                                                    fontSize: '0.8rem',
-                                                    color: 'white',
-                                                    background: task.assignedTo.kolor || '#808080'
-                                                }}>
-                                                  {task.assignedTo.email}
-                                                </span>
-                                                {/* --- NOWY PRZYCISK --- */}
-                                                <DeleteTaskButton taskId={task.id}/>
-                                                {/* -------------------- */}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {tasks.length === 0 && <p>Brak zadań dla tego kontaktu.</p>}
+                                {/* Opis */}
+                                <p className="text-zinc-600 my-2">{task.opis}</p>
+
+                                {/* Dolna część: Przypisany User i Przycisk Usuń */}
+                                <div className="flex justify-between items-center mt-3">
+                                    <span
+                                        className="py-1 px-3 rounded-full text-xs font-medium text-white"
+                                        style={{ backgroundColor: task.assignedTo.kolor || '#808080' }}
+                                    >
+                                        {task.assignedTo.email}
+                                    </span>
+                                    <DeleteTaskButton taskId={task.id} />
                                 </div>
                             </div>
-                            <p style={{margin: '5px 0'}}>{task.opis}</p>
-                            <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '10px',
-                                fontSize: '0.8rem',
-                                color: 'white',
-                                background: task.assignedTo.kolor || '#808080'
-                            }}>
-                {task.assignedTo.email}
-              </span>
-                        </div>
-                    ))}
-                    {tasks.length === 0 && <p>Brak zadań dla tego kontaktu.</p>}
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Kolumna prawa: Formularz dodawania */}
-            <div style={{paddingTop: '50px'}}> {/* Dodany padding, aby formularz był niżej */}
-                <AddTaskForm contactId={contact.id} users={users}/>
+            {/* === KOLUMNA PRAWA (Formularz) === */}
+            <div className="pt-0 md:pt-16">
+                <AddTaskForm contactId={contact.id} users={users} />
             </div>
 
         </div>

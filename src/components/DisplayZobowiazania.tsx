@@ -10,24 +10,38 @@ interface Zobowiazania {
     inne?: string;
 }
 
+// Funkcja pomocnicza, aby wiersze wyglądały identycznie jak w DisplayField
+const Row = ({ label, value }: { label: string, value: string | undefined | null }) => {
+    if (!value || value.trim() === '') return null; // Nie renderuj pustych
+    return (
+        <div className="flex py-2 border-b border-zinc-100 last:border-b-0">
+            <strong className="w-48 flex-shrink-0 text-zinc-600 font-medium">{label}:</strong>
+            <span className="flex-1 text-zinc-800 break-words">{value}</span>
+        </div>
+    )
+}
+
 export default function DisplayZobowiazania({ data }: { data: Prisma.JsonValue | null | undefined }) {
     if (!data) return null;
 
-    // Bezpieczne parsowanie danych
     const zobowiazania = data as Zobowiazania;
 
-    // Sprawdzamy, czy którekolwiek pole ma wartość
-    const hasData = Object.values(zobowiazania).some(val => val && val.length > 0);
+    const hasData = Object.values(zobowiazania).some(val => val && val.trim().length > 0);
     if (!hasData) return null;
 
     return (
-        <fieldset style={{ border: '1px solid #ccc', borderRadius: '4px', margin: '10px 0' }}>
-            <legend>Zobowiązania</legend>
-            {zobowiazania.zus && <p><strong>ZUS:</strong> {zobowiazania.zus}</p>}
-            {zobowiazania.us && <p><strong>US:</strong> {zobowiazania.us}</p>}
-            {zobowiazania.kredyty && <p><strong>Kredyty:</strong> {zobowiazania.kredyty}</p>}
-            {zobowiazania.faktury && <p><strong>Faktury:</strong> {zobowiazania.faktury}</p>}
-            {zobowiazania.inne && <p><strong>Inne:</strong> {zobowiazania.inne}</p>}
-        </fieldset>
+        // Używamy border-t (border-top) aby oddzielić tę sekcję od reszty pól
+        <div className="mt-4 pt-4 border-t border-zinc-200">
+            {/* Tytuł sekcji Zobowiązania */}
+            <h3 className="mb-1 text-base font-semibold text-zinc-600">Zobowiązania</h3>
+
+            <div className="flex flex-col">
+                <Row label="ZUS" value={zobowiazania.zus} />
+                <Row label="US" value={zobowiazania.us} />
+                <Row label="Kredyty" value={zobowiazania.kredyty} />
+                <Row label="Faktury" value={zobowiazania.faktury} />
+                <Row label="Inne" value={zobowiazania.inne} />
+            </div>
+        </div>
     )
 }
