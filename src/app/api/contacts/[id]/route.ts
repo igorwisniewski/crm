@@ -1,11 +1,12 @@
 // src/app/api/tasks/[id]/route.ts
-import { NextResponse, type NextRequest } from 'next/server' // ZMIANA
+import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 
-// Usunięto funkcję getIdFromUrl
-
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) { // ZMIANA
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> } // <-- POPRAWKA 1: Typ musi być Promise
+) {
     const supabase = createClient()
 
     try {
@@ -14,7 +15,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             return NextResponse.json({ error: 'Brak autoryzacji' }, { status: 401 })
         }
 
-        const taskId = params.id // ZMIANA
+        // POPRAWKA 2: Użyj "await", aby dostać się do id
+        // Możesz też od razu zmienić nazwę zmiennej na taskId
+        const { id: taskId } = await params;
+
+        // Ten warunek jest teraz mniej potrzebny, bo Next.js gwarantuje,
+        // że params będą dostępne w dynamicznym roucie.
         if (!taskId) {
             return NextResponse.json({ error: 'Brak ID zadania w adresie URL' }, { status: 400 });
         }
