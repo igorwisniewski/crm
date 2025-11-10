@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+// 1. DODAJ TEN BLOK
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id    String  @id @default(uuid())
+  email String? @unique
+  role  Role    @default(USER)
+
+  // --- NOWE POLE ---
+  kolor String? // np. "#FF5733"
+
+  // Relacje do kontaktów (już to masz)
+  createdContacts  Contact[] @relation("CreatedBy")
+  assignedContacts Contact[] @relation("AssignedTo")
+
+  // --- NOWE RELACJE DO ZADAŃ ---
+  createdTasks  Task[] @relation("TaskCreatedBy")
+  assignedTasks Task[] @relation("TaskAssignedTo")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ... (wszystkie twoje pola: imie, etap, nazwaFirmy itd.) ...
+  imie                    String
+  etap                    String
+  email                   String?
+  telefon                 String?
+  zrodlo                  String?
+  branza                  String?
+  opis                    String?
+  nazwaFirmy              String?
+  rodzajDzialki           String?
+  potrzebaKlienta         String?
+  formaOpodatkowania      String?
+  zobowiazania            Json?
+  majatekFirmy            String?
+  czyZatrudniaPracownikow String?
+  opoznieniaWPlatnosciach String?
+  planNaRozwoj            String?
+  stanCywilny             String?
+  rozdzielnoscMajatkowa   String?
+  majatekPrywatny         String?
+  czyBralKredyt10Lat      String?
+
+  // Relacje (już to masz)
+  createdById  String
+  createdBy    User   @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedToId String
+  assignedTo   User   @relation("AssignedTo", fields: [assignedToId], references: [id])
+
+  // --- NOWA RELACJA DO ZADAŃ ---
+  tasks Task[]
+}
+
+// --- NOWY MODEL ZADANIA ---
+model Task {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nazwa    String
+  opis     String?
+  termin   DateTime // Będzie zawierać datę i godzinę
+  wykonane Boolean  @default(false)
+
+  // Relacja: Do jakiego kontaktu należy zadanie?
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id])
+
+  // Relacja: Kto stworzył to zadanie?
+  createdById String
+  createdBy   User   @relation("TaskCreatedBy", fields: [createdById], references: [id])
+
+  // Relacja: Kto ma wykonać zadanie?
+  assignedToId String
+  assignedTo   User   @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+}
