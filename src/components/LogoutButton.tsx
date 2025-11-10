@@ -16,8 +16,8 @@ export default function LogoutButton() {
 
     return (
         <button
-            onClick={handleLogout}
-            style={{ padding: '5px 10px', background: 'red', color: 'white', border: 'none', cursor: 'pointer' }}
+            onClick={handleLogout} className="rounded-full bg-blue-800"
+            style={{ padding: '5px 10px', color: 'white', border: 'none', cursor: 'pointer' }}
         >
             Wyloguj
         </button>

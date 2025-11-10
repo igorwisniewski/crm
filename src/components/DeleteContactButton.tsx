@@ -7,10 +7,14 @@ import { useState } from 'react'
 export default function DeleteContactButton({ contactId }: { contactId: string }) {
     const router = useRouter()
     const [error, setError] = useState('')
+    const [isDeleting, setIsDeleting] = useState(false) // Dodajemy stan ładowania
 
     const handleDelete = async () => {
         setError('')
-        if (window.confirm('Czy na pewno chcesz usunąć ten kontakt?')) {
+        if (isDeleting) return; // Zapobiegaj podwójnemu kliknięciu
+
+        if (window.confirm('Czy na pewno chcesz usunąć ten kontakt? Spowoduje to również usunięcie wszystkich powiązanych z nim zadań.')) {
+            setIsDeleting(true)
             const res = await fetch(`/api/contacts/${contactId}`, {
                 method: 'DELETE',
             })
@@ -21,15 +25,18 @@ export default function DeleteContactButton({ contactId }: { contactId: string }
                 setError(data.error || 'Nie udało się usunąć.')
                 alert(`BŁĄD: ${data.error}`)
             }
+            setIsDeleting(false)
         }
     }
 
     return (
         <button
             onClick={handleDelete}
-            style={{ background: 'red', color: 'white', padding: '5px', border: 'none' }}
+            disabled={isDeleting}
+            // ZMIENIONE STYLE NA KLASY TAILWIND
+            className="py-1 px-3 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
         >
-            Usuń
+            {isDeleting ? 'Usuwanie...' : 'Usuń'}
         </button>
     )
 }

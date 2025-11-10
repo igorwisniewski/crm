@@ -13,7 +13,6 @@ import DeleteContactButton from "@/components/DeleteContactButton";
 
 // Definiujemy typy dla strony (propsy przekazywane z URL)
 interface KontaktyPageProps {
-    // FIX 2: searchParams to teraz Obietnica (Promise)
     searchParams: Promise<{
         etap?: string;
         szukaj?: string;
@@ -36,30 +35,26 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
     // 1. Uwierzytelnianie
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-        redirect('/login')
+        redirect('/') // Zaktualizowane przekierowanie na stronę główną
     }
 
     const userProfile = await prisma.user.findUnique({
         where: { id: user.id }
     })
     if (!userProfile) {
-        redirect('/login')
+        redirect('/') // Zaktualizowane przekierowanie na stronę główną
     }
 
     // 2. Budowanie zapytania (WHERE) dla Prismy
-
-    // FIX 2 (kontynuacja): Musimy 'await' na searchParams
     const params = await searchParams;
-    const { etap, szukaj } = params; // Teraz pracujemy na obiekcie
+    const { etap, szukaj } = params;
 
     const where: Prisma.ContactWhereInput = {}
 
-    // B. Filtr etapu
     if (etap && etap !== 'wszystkie') {
         where.etap = etap
     }
 
-    // C. Filtr wyszukiwania
     if (szukaj) {
         where.OR = [
             { imie: { contains: szukaj, mode: 'insensitive' } },
@@ -86,13 +81,20 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
     })
 
     return (
-        <div style={{ maxWidth: '1200px', margin: 'auto', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1>
-                    Kontakty ({kontakty.length})
-                    {userProfile.role === 'ADMIN' && ' (Admin)'}
+        // === ZMIANY ZACZYNAJĄ SIĘ TUTAJ ===
+        <div className="max-w-7xl mx-auto p-5">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-zinc-800">
+                    Kontakty
+                    <span className="text-zinc-500 font-normal ml-2">({kontakty.length})</span>
+                    {userProfile.role === 'ADMIN' && (
+                        <span className="text-lg font-normal text-blue-600 ml-3">(Admin)</span>
+                    )}
                 </h1>
-                <Link href="/kontakty/nowy" style={{ padding: '10px 15px', background: 'green', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>
+                <Link
+                    href="/kontakty/nowy"
+                    className="inline-flex items-center py-2 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+                >
                     + Dodaj nowy
                 </Link>
             </div>
@@ -100,44 +102,54 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
             <KontaktyFiltry />
 
             {/* --- POCZĄTEK TABELI --- */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-                <thead>
-                <tr style={{ background: '#f0f0f0' }}>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Data dodania</th>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Imię</th>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Firma</th>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Telefon</th>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Etap</th>
-                    <th style={{ padding: '10px', border: '1px solid #ccc', textAlign: 'left' }}>Akcje</th>
-                </tr>
-                </thead>
-                <tbody>
-                {kontakty.map((kontakt) => (
-                    <tr key={kontakt.id}>
-                        <td style={{ padding: '10px', border: '1px solid #ccc' }}>{formatDate(kontakt.createdAt)}</td>
-                        <td style={{ padding: '10px', border: '1px solid #ccc' }}>
-                            {/* ZMIANA: Link prowadzi do strony szczegółów */}
-                            <Link href={`/kontakty/${kontakt.id}`} style={{ color: 'blue', textDecoration: 'underline' }}>
-                                {kontakt.imie}
-                            </Link>
-                        </td>
-                        <td style={{ padding: '10px', border: '1px solid #ccc' }}>{kontakt.nazwaFirmy}</td>
-                        <td style={{ padding: '10px', border: '1px solid #ccc' }}>{kontakt.telefon}</td>
-                        <td style={{ padding: '10px', border: '1px solid #ccc' }}>{kontakt.etap}</td>
-                        <td style={{ padding: '10px', border: '1px solid #ccc', display: 'flex', gap: '5px' }}>
-                            {/* NOWY LINK "Edytuj" */}
-                            <Link href={`/kontakty/edycja/${kontakt.id}`} style={{ padding: '5px', background: 'orange', color: 'white' }}>
-                                Edytuj
-                            </Link>
-                            <DeleteContactButton contactId={kontakt.id} />
-                        </td>
+            {/* Używamy overflow-x-auto, aby tabela była responsywna na małych ekranach */}
+            <div className="overflow-x-auto bg-white rounded-lg shadow border border-zinc-200">
+                <table className="w-full border-collapse">
+                    <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <tr>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Data dodania</th>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Imię</th>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Firma</th>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Telefon</th>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Etap</th>
+                        <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Akcje</th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-200">
+                    {kontakty.map((kontakt) => (
+                        <tr key={kontakt.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="p-3 text-zinc-700 whitespace-nowrap">{formatDate(kontakt.createdAt)}</td>
+                            <td className="p-3 text-zinc-900 whitespace-nowrap">
+                                <Link
+                                    href={`/kontakty/${kontakt.id}`}
+                                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                    {kontakt.imie}
+                                </Link>
+                            </td>
+                            <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.nazwaFirmy}</td>
+                            <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.telefon}</td>
+                            <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.etap}</td>
+                            <td className="p-3 flex gap-2 items-center">
+                                <Link
+                                    href={`/kontakty/edycja/${kontakt.id}`}
+                                    className="py-1 px-3 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors"
+                                >
+                                    Edytuj
+                                </Link>
+                                <DeleteContactButton contactId={kontakt.id} />
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
             {/* --- KONIEC TABELI --- */}
+
             {kontakty.length === 0 && (
-                <p style={{ textAlign: 'center', marginTop: '30px' }}>Nie znaleziono kontaktów.</p>
+                <div className="text-center text-zinc-500 mt-10 py-10 bg-white rounded-lg shadow border border-zinc-200">
+                    <p>Nie znaleziono kontaktów.</p>
+                </div>
             )}
         </div>
     )
