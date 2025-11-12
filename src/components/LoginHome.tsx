@@ -28,7 +28,6 @@ export default function LoginHome() {
             alert('Sprawdź e-mail, aby potwierdzić rejestrację!')
         }
     }
-
     const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -39,9 +38,10 @@ export default function LoginHome() {
         if (error) {
             setError('Błąd logowania: ' + error.message)
         } else {
-            // Przekieruj do strony kontaktów
-            router.push('/kontakty')
-            router.refresh() // Ważne, aby odświeżyć sesję na serwerze
+            // ⬇️ POPRAWKA ⬇️
+            // Zamiast router.push, użyj twardego przeładowania.
+            // To zmusi middleware do ponownego uruchomienia i zobaczenia nowej sesji.
+            window.location.href = '/kontakty';
         }
     }
 

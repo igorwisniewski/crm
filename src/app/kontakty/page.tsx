@@ -1,6 +1,8 @@
 // src/app/kontakty/page.tsx
 
 // FIX 1: Naprawia cache, aby wyszukiwarka i filtry działały
+import AssignedFiltr from "@/components/Przypisanyfiltr";
+
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
@@ -16,6 +18,7 @@ interface KontaktyPageProps {
     searchParams: Promise<{
         etap?: string;
         szukaj?: string;
+        userId?: string;
     }>
 }
 
@@ -47,16 +50,30 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
 
     // 2. Budowanie zapytania (WHERE) dla Prismy
     const params = await searchParams;
-    const { etap, szukaj } = params;
-
+    const { etap, szukaj,userId } = params;
     const where: Prisma.ContactWhereInput = {}
 
-    // ⬇️ --- ZMIANA 1: Filtrowanie po roli --- ⬇️
-    // Jeśli użytkownik NIE JEST adminem, może zobaczyć tylko swoje kontakty
-    if (userProfile.role !== 'ADMIN') {
-        where.createdById = user.id // Używamy 'createdById'
+    // ⬇️ --- POPRAWNA LOGIKA FILTROWANIA 'assignedToId' --- ⬇️
+    if (userProfile.role === 'ADMIN') {
+        // ADMIN: Może filtrować
+        if (userId && userId !== 'wszyscy') {
+            if (userId === 'nieprzypisani') {
+                // Pokaż kontakty, gdzie 'assignedToId' jest puste (null)
+                // @ts-expect-error norma
+                where.assignedToId = null;
+            } else {
+                // Pokaż kontakty dla konkretnego 'userId' z filtra
+                where.assignedToId = userId;
+            }
+        }
+        // Jeśli admin (Ty) wybrał 'wszyscy' (lub nic nie wybrał),
+        // nie dodajemy żadnego filtra 'assignedToId', więc widzi wszystkie.
+
+    } else {
+        // ZWYKŁY USER: Widzi tylko kontakty przypisane do siebie (bez możliwości zmiany)
+        where.assignedToId = user.id;
     }
-    // ⬆️ --- KONIEC ZMIANY 1 --- ⬆️
+    // ⬆️ --- KONIEC POPRAWKI --- ⬆️
 
     if (etap && etap !== 'wszystkie') {
         where.etap = etap
@@ -77,7 +94,7 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
         orderBy: {
             createdAt: 'desc',
         },
-        // ⬇️ --- ZMIANA 2: Dołączenie danych użytkownika (przez 'createdBy') --- ⬇️
+        // ⬇️ --- ZMIANA 2: Dołączenie danych użytkownika (przez 'assignedTo') --- ⬇️
         select: {
             id: true,
             createdAt: true,
@@ -85,7 +102,7 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
             etap: true,
             nazwaFirmy: true,
             telefon: true,
-            createdBy: { // Zakładamy, że relacja nazywa się 'createdBy'
+            assignedTo: { // Zakładamy, że relacja nazywa się 'assignedTo'
                 select: {
                     email: true
                 }
@@ -93,10 +110,39 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
         }
         // ⬆️ --- KONIEC ZMIANY 2 --- ⬆️
     })
+// ... (wewnątrz funkcji KontaktyPage) ...
+
+    // Definiujemy typ dla użytkowników w filtrze
+    type UserForFilter = {
+        id: string;
+        email: string; // Użyj 'string | null', jeśli email może być null
+        // lub po prostu 'string', jeśli jest wymagany
+    }
+
+    // ZMIANA: Dodajemy jawny typ 'UserForFilter[]' do zmiennej
+    let usersList: UserForFilter[] = []
+// w pliku: src/app/kontakty/page.tsx
+
+    if (userProfile?.role === 'ADMIN') {
+        // @ts-expect-error norma
+        usersList = await prisma.user.findMany({
+
+            // ⬇️ --- DODAJ TĘ SEKCJĘ 'WHERE' --- ⬇️
+            where: {
+                email: {
+                    not: null // Pobieraj tylko użytkowników, którzy MAJĄ email
+                }
+            },
+            // ⬆️ --- KONIEC ZMIANY --- ⬆️
+
+            select: { id: true, email: true }, // 'email' tutaj automatycznie będzie typu 'string'
+            orderBy: { email: 'asc' }
+        })
+    }
 
     return (
         // === ZMIANY ZACZYNAJĄ SIĘ TUTAJ ===
-        <div className="max-w-7xl mx-auto p-5">
+        <div className="max-w-8xl mx-auto p-5">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-zinc-800">
                     Kontakty
@@ -112,6 +158,7 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                     + Dodaj nowy
                 </Link>
             </div>
+            <AssignedFiltr users={usersList} /> {/* <--- Wywołujesz nowy filtr OBOK starego */}
 
             <KontaktyFiltry />
 
@@ -126,9 +173,9 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Firma</th>
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Telefon</th>
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Etap</th>
-                        {/* ⬇️ --- ZMIANA 3: Nowy nagłówek tabeli (tylko dla admina) --- ⬇️ */}
+                        {/* ⬇️ --- ZMIANA 3: Nagłówek (pozostaje 'Użytkownik') --- ⬇️ */}
                         {userProfile.role === 'ADMIN' && (
-                            <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Użytkownik</th>
+                            <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Przypisany do</th>
                         )}
                         {/* ⬆️ --- KONIEC ZMIANY 3 --- ⬆️ */}
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Akcje</th>
@@ -149,9 +196,9 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.nazwaFirmy}</td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.telefon}</td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.etap}</td>
-                            {/* ⬇️ --- ZMIANA 4: Nowa komórka z danymi (tylko dla admina) --- ⬇️ */}
+                            {/* ⬇️ --- ZMIANA 4: Wyświetlanie 'assignedTo.email' --- ⬇️ */}
                             {userProfile.role === 'ADMIN' && (
-                                <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.createdBy?.email}</td>
+                                <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.assignedTo?.email}</td>
                             )}
                             {/* ⬆️ --- KONIEC ZMIANY 4 --- ⬆️ */}
                             <td className="p-3 flex gap-2 items-center">
