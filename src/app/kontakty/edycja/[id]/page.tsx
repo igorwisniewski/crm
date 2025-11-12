@@ -1,9 +1,9 @@
-// src/app/kontakty/edycja/[id]/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Contact } from '@prisma/client' // Importujemy typ
+// ZMIANA: Importujemy typ User (lub jego część)
+import { Contact, User } from '@prisma/client'
 
 // --- Style (te same co w 'nowy') ---
 const fieldsetStyle = {
@@ -23,6 +23,9 @@ const inputStyle = {
 };
 // --------------------
 
+// ZMIANA: Definiujemy typ dla uproszczonego użytkownika
+type SimpleUser = Pick<User, 'id' | 'email'>
+
 export default function EdycjaKontaktuPage() {
     const router = useRouter()
     const params = useParams()
@@ -34,6 +37,12 @@ export default function EdycjaKontaktuPage() {
     // === Stany dla Pól Podstawowych ===
     const [imie, setImie] = useState('')
     const [etap, setEtap] = useState('Nowy')
+
+    // ⬇️ --- ZMIANA: Stany dla listy użytkowników i przypisanego ID --- ⬇️
+    const [users, setUsers] = useState<SimpleUser[]>([])
+    const [assignedToId, setAssignedToId] = useState<string>('') // ID przypisanego użytkownika
+    // ⬆️ --- KONIEC ZMIANY --- ⬆️
+
     // ... (reszta stanów) ...
     const [email, setEmail] = useState('')
     const [telefon, setTelefon] = useState('')
@@ -58,6 +67,28 @@ export default function EdycjaKontaktuPage() {
     const [majatekPrywatny, setMajatekPrywatny] = useState('')
     const [czyBralKredyt10Lat, setCzyBralKredyt10Lat] = useState('')
 
+    // ⬇️ --- ZMIANA: Nowy useEffect do pobierania użytkowników --- ⬇️
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch('/api/users'); // Używamy nowego API
+                if (res.ok) {
+                    const data = await res.json();
+                    setUsers(data);
+                } else {
+                    console.error("Nie udało się pobrać użytkowników");
+                    setError(prev => prev + ' Błąd ładowania listy użytkowników.');
+                }
+            } catch (err) {
+                console.error(err);
+                setError(prev => prev + ' Błąd sieci przy ładowaniu użytkowników.');
+            }
+        };
+        fetchUsers();
+    }, []); // Uruchamiamy tylko raz, przy ładowaniu komponentu
+    // ⬆️ --- KONIEC ZMIANY --- ⬆️
+
+
     // --- POBIERANIE DANYCH KONTAKTU ---
     useEffect(() => {
         if (!contactId) return;
@@ -70,7 +101,9 @@ export default function EdycjaKontaktuPage() {
                 setLoading(false)
                 return
             }
-            const data: Contact & { zobowiazania?: any } = await res.json()
+
+            // ZMIANA: Rozszerzamy typ o 'assignedToId'
+            const data: Contact & { zobowiazania?: any; assignedToId?: string | null } = await res.json()
 
             // Ustawiamy stany na podstawie pobranych danych
             setImie(data.imie || '')
@@ -92,6 +125,10 @@ export default function EdycjaKontaktuPage() {
             setRozdzielnoscMajatkowa(data.rozdzielnoscMajatkowa || '')
             setMajatekPrywatny(data.majatekPrywatny || '')
             setCzyBralKredyt10Lat(data.czyBralKredyt10Lat || '')
+
+            // ⬇️ --- ZMIANA: Ustawiamy ID przypisanego użytkownika --- ⬇️
+            setAssignedToId(data.assignedToId || '') // Używamy '' dla "Brak"
+            // ⬆️ --- KONIEC ZMIANY --- ⬆️
 
             // Rozpakowanie JSON
             if (data.zobowiazania) {
@@ -143,6 +180,11 @@ export default function EdycjaKontaktuPage() {
                 majatekFirmy, czyZatrudniaPracownikow, opoznieniaWPlatnosciach,
                 planNaRozwoj, zobowiazania,
                 stanCywilny, rozdzielnoscMajatkowa, majatekPrywatny, czyBralKredyt10Lat,
+
+                // ⬇️ --- ZMIANA: Dodajemy assignedToId do wysyłki --- ⬇️
+                // Wysyłamy null jeśli jest pusty string, inaczej wysyłamy ID
+                assignedToId: assignedToId ? assignedToId : null,
+                // ⬆️ --- KONIEC ZMIANY --- ⬆️
             }),
         })
 
@@ -180,11 +222,30 @@ export default function EdycjaKontaktuPage() {
                             <option value="Nie Siadło">Nie Siadło</option>
                         </select>
                     </label>
+
+                    {/* ⬇️ --- ZMIANA: Nowy dropdown użytkownika --- ⬇️ */}
+                    <label>
+                        Przypisany do:
+                        <select
+                            value={assignedToId}
+                            onChange={(e) => setAssignedToId(e.target.value)}
+                            style={inputStyle}
+                        >
+                            <option value="">Nie przypisano</option>
+                            {users.map(user => (
+                                <option key={user.id} value={user.id}>
+                                    {user.email}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    {/* ⬆️ --- KONIEC ZMIANY --- ⬆️ */}
+
                     <label>Email: <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} /></label>
                     <label>Telefon: <input type="text" value={telefon} onChange={(e) => setTelefon(e.target.value)} style={inputStyle} /></label>
                     <label>Źródło: <input type="text" value={zrodlo} onChange={(e) => setZrodlo(e.target.value)} style={inputStyle} /></label>
                     <label>Branża: <input type="text" value={branza} onChange={(e) => setBranza(e.target.value)} style={inputStyle} /></label>
-                    <label>Opis: <textarea value={opis} onChange={(e) => setOpis(e.target.value)} style={inputStyle} /></label>
+                    <label>Opis: <textarea value={opis} onChange={(e) => setOpis(e.target.value)} style={inputStyle} rows={10}/></label>
                 </fieldset>
 
                 {/* --- SEKCJA 2: FIRMA --- */}

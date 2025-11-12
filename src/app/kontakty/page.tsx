@@ -51,6 +51,13 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
 
     const where: Prisma.ContactWhereInput = {}
 
+    // ⬇️ --- ZMIANA 1: Filtrowanie po roli --- ⬇️
+    // Jeśli użytkownik NIE JEST adminem, może zobaczyć tylko swoje kontakty
+    if (userProfile.role !== 'ADMIN') {
+        where.createdById = user.id // Używamy 'createdById'
+    }
+    // ⬆️ --- KONIEC ZMIANY 1 --- ⬆️
+
     if (etap && etap !== 'wszystkie') {
         where.etap = etap
     }
@@ -70,6 +77,7 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
         orderBy: {
             createdAt: 'desc',
         },
+        // ⬇️ --- ZMIANA 2: Dołączenie danych użytkownika (przez 'createdBy') --- ⬇️
         select: {
             id: true,
             createdAt: true,
@@ -77,7 +85,13 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
             etap: true,
             nazwaFirmy: true,
             telefon: true,
+            createdBy: { // Zakładamy, że relacja nazywa się 'createdBy'
+                select: {
+                    email: true
+                }
+            }
         }
+        // ⬆️ --- KONIEC ZMIANY 2 --- ⬆️
     })
 
     return (
@@ -112,13 +126,18 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Firma</th>
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Telefon</th>
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Etap</th>
+                        {/* ⬇️ --- ZMIANA 3: Nowy nagłówek tabeli (tylko dla admina) --- ⬇️ */}
+                        {userProfile.role === 'ADMIN' && (
+                            <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Użytkownik</th>
+                        )}
+                        {/* ⬆️ --- KONIEC ZMIANY 3 --- ⬆️ */}
                         <th className="p-3 text-left text-sm font-semibold text-zinc-600 uppercase">Akcje</th>
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200">
                     {kontakty.map((kontakt) => (
                         <tr key={kontakt.id} className="hover:bg-zinc-50 transition-colors">
-                            <td className="p-3 text-zinc-700 whitespace-nowrap">{formatDate(kontakt.createdAt)}</td>
+                            <td className="p-3 text-zinc-700 whitespace-noww-rap">{formatDate(kontakt.createdAt)}</td>
                             <td className="p-3 text-zinc-900 whitespace-nowrap">
                                 <Link
                                     href={`/kontakty/${kontakt.id}`}
@@ -130,6 +149,11 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.nazwaFirmy}</td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.telefon}</td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.etap}</td>
+                            {/* ⬇️ --- ZMIANA 4: Nowa komórka z danymi (tylko dla admina) --- ⬇️ */}
+                            {userProfile.role === 'ADMIN' && (
+                                <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.createdBy?.email}</td>
+                            )}
+                            {/* ⬆️ --- KONIEC ZMIANY 4 --- ⬆️ */}
                             <td className="p-3 flex gap-2 items-center">
                                 <Link
                                     href={`/kontakty/edycja/${kontakt.id}`}
