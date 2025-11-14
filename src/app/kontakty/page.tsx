@@ -31,6 +31,38 @@ function formatDate(date: Date) {
     }).format(date);
 }
 
+// ⬇️ --- ZMIANA: Funkcja pomocnicza do kolorowania etapów --- ⬇️
+// Mapuje nazwę etapu na klasy Tailwind CSS
+function getEtapClasses(etap: string | null | undefined): string {
+    const baseClasses = "px-2.5 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap"; // Podstawowy styl "badge"
+
+    switch (etap) {
+        case "Lead":
+            return `${baseClasses} bg-blue-100 text-blue-800 border-blue-200`;
+        case "Po pierwszym kontakcie":
+            return `${baseClasses} bg-cyan-100 text-cyan-800 border-cyan-200`;
+        case "Kompletuje dokumenty":
+            return `${baseClasses} bg-yellow-100 text-yellow-800 border-yellow-200`;
+        case "Braki w dokumentach":
+            return `${baseClasses} bg-red-100 text-red-800 border-red-200`;
+        case "Umówiony na spotkanie":
+            return `${baseClasses} bg-indigo-100 text-indigo-800 border-indigo-200`;
+        case "Po pierwszym spotkaniu":
+            return `${baseClasses} bg-purple-100 text-purple-800 border-purple-200`;
+        case "Przygotowany do procesu":
+            return `${baseClasses} bg-lime-100 text-lime-800 border-lime-200`;
+        case "Siadło":
+            return `${baseClasses} bg-green-100 text-green-800 border-green-200`;
+        case "Nie Siadło":
+            return `${baseClasses} bg-red-100 text-red-800 border-red-200`;
+        default:
+            // Domyślny styl dla etapu 'null' lub nieznanego
+            return `${baseClasses} bg-gray-100 text-gray-800 border-gray-200`;
+    }
+}
+// ⬆️ --- KONIEC ZMIANY --- ⬆️
+
+
 // Główny komponent strony (Komponent Serwerowy)
 export default async function KontaktyPage({ searchParams }: KontaktyPageProps) {
     const supabase = createClient()
@@ -195,7 +227,15 @@ export default async function KontaktyPage({ searchParams }: KontaktyPageProps) 
                             </td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.nazwaFirmy}</td>
                             <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.telefon}</td>
-                            <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.etap}</td>
+
+                            {/* ⬇️ --- ZMIANA: Zastosowanie kolorowego "badge" --- ⬇️ */}
+                            <td className="p-3 whitespace-nowrap">
+                                <span className={getEtapClasses(kontakt.etap)}>
+                                    {kontakt.etap || 'Brak etapu'}
+                                </span>
+                            </td>
+                            {/* ⬆️ --- KONIEC ZMIANY --- ⬆️ */}
+
                             {/* ⬇️ --- ZMIANA 4: Wyświetlanie 'assignedTo.email' --- ⬇️ */}
                             {userProfile.role === 'ADMIN' && (
                                 <td className="p-3 text-zinc-700 whitespace-nowrap">{kontakt.assignedTo?.email}</td>
